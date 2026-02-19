@@ -3,7 +3,8 @@ import fitz  # PyMuPDF
 from flask import Flask, render_template, request, redirect, url_for, flash
 from werkzeug.utils import secure_filename
 from PIL import Image
-from watermark_pdf import watermark_image_to_pdf  # fungsi watermark Anda
+# Di dalam api/index.py
+from .watermark_pdf import watermark_image_to_pdf
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # ganti dengan secret key Anda
