@@ -3,210 +3,107 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Upload PDF with Watermark</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Watermarker & TIFF Converter</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- SweetAlert2 CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.10.5/sweetalert2.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .upload-container {
+            max-width: 600px;
+            margin: 80px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+    </style>
 </head>
 
 <body>
-    <div class="container mt-5">
-        <h1>Upload PDF and Watermark</h1>
 
-        <!-- Hidden div untuk menyimpan flash messages -->
-        <div id="flash-messages" style="display: none;">
+    <div class="container">
+        <div class="upload-container">
+            <h2 class="text-center mb-4">PDF Watermark Tool</h2>
+
             {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
             {% for category, message in messages %}
-            <div data-category="{{ category }}" data-message="{{ message }}"></div>
+            <div class="d-none" id="flash-data" data-category="{{ category }}" data-message="{{ message }}"></div>
             {% endfor %}
             {% endif %}
             {% endwith %}
-        </div>
 
-        <form method="post" action="{{ url_for('upload_files') }}" enctype="multipart/form-data" id="uploadForm">
-            <div class="mb-3">
-                <label for="pdf_files" class="form-label">Upload PDF Files</label>
-                <input class="form-control" type="file" name="pdf_files" id="pdf_files" multiple required accept=".pdf">
-            </div>
-            <button type="submit" class="btn btn-primary" id="uploadBtn">
-                <span class="btn-text">Upload</span>
-                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-            </button>
-        </form>
+            <form method="post" action="/upload" enctype="multipart/form-data" id="uploadForm">
+                <div class="mb-4">
+                    <label for="pdf_files" class="form-label fw-bold">Pilih file PDF (bisa banyak):</label>
+                    <input class="form-control" type="file" name="pdf_files" id="pdf_files" multiple required
+                        accept=".pdf">
+                    <div class="form-text">File akan diproses menjadi PDF Watermarked dan TIFF.</div>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary btn-lg" id="uploadBtn">
+                        <span class="btn-text">Mulai Proses</span>
+                        <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- SweetAlert2 JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.10.5/sweetalert2.all.min.js"></script>
 
     <script>
-        // Fungsi untuk menampilkan notifikasi SweetAlert berdasarkan kategori
-        function showSweetAlert(category, message) {
-            let icon, title, confirmButtonColor;
+        const form = document.getElementById('uploadForm');
+        const btn = document.getElementById('uploadBtn');
+        const btnText = btn.querySelector('.btn-text');
+        const spinner = btn.querySelector('.spinner-border');
 
-            switch (category) {
-                case 'success':
-                    icon = 'success';
-                    title = 'Berhasil!';
-                    confirmButtonColor = '#28a745';
-                    break;
-                case 'danger':
-                case 'error':
-                    icon = 'error';
-                    title = 'Error!';
-                    confirmButtonColor = '#dc3545';
-                    break;
-                case 'warning':
-                    icon = 'warning';
-                    title = 'Peringatan!';
-                    confirmButtonColor = '#ffc107';
-                    break;
-                case 'info':
-                    icon = 'info';
-                    title = 'Informasi';
-                    confirmButtonColor = '#17a2b8';
-                    break;
-                default:
-                    icon = 'info';
-                    title = 'Notifikasi';
-                    confirmButtonColor = '#007bff';
-            }
-
-            Swal.fire({
-                icon: icon,
-                title: title,
-                text: message,
-                confirmButtonColor: confirmButtonColor,
-                confirmButtonText: 'OK',
-                showCloseButton: true,
-                timer: 5000,
-                timerProgressBar: true,
-                customClass: {
-                    popup: 'animate__animated animate__fadeInDown'
-                }
-            });
-        }
-
-        // Cek flash messages saat halaman dimuat
+        // 1. Tangani Notifikasi dari Flash (Error/Warning)
         document.addEventListener('DOMContentLoaded', function () {
-            const flashMessages = document.getElementById('flash-messages');
-            if (flashMessages) {
-                const messages = flashMessages.querySelectorAll('div[data-category]');
-                messages.forEach(function (messageDiv) {
-                    const category = messageDiv.getAttribute('data-category');
-                    const message = messageDiv.getAttribute('data-message');
-                    if (category && message) {
-                        showSweetAlert(category, message);
-                    }
+            const flashEl = document.getElementById('flash-data');
+            if (flashEl) {
+                const category = flashEl.getAttribute('data-category');
+                const message = flashEl.getAttribute('data-message');
+                Swal.fire({
+                    icon: category === 'danger' ? 'error' : category,
+                    title: category.toUpperCase(),
+                    text: message
                 });
             }
         });
 
-        // Handle form submission dengan loading state
-        document.getElementById('uploadForm').addEventListener('submit', function (e) {
-            const uploadBtn = document.getElementById('uploadBtn');
-            const btnText = uploadBtn.querySelector('.btn-text');
-            const spinner = uploadBtn.querySelector('.spinner-border');
-            const fileInput = document.getElementById('pdf_files');
-
-            // Validasi file
-            if (fileInput.files.length === 0) {
-                e.preventDefault();
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Peringatan!',
-                    text: 'Silakan pilih file PDF yang akan diupload.',
-                    confirmButtonColor: '#ffc107'
-                });
-                return;
-            }
-
-            // Validasi tipe file
-            let validFiles = true;
-            for (let file of fileInput.files) {
-                if (file.type !== 'application/pdf') {
-                    validFiles = false;
-                    break;
-                }
-            }
-
-            if (!validFiles) {
-                e.preventDefault();
-                Swal.fire({
-                    icon: 'error',
-                    title: 'File Tidak Valid!',
-                    text: 'Hanya file PDF yang diperbolehkan.',
-                    confirmButtonColor: '#dc3545'
-                });
-                return;
-            }
-
-            // Tampilkan loading state
-            uploadBtn.disabled = true;
-            btnText.textContent = 'Uploading...';
+        // 2. Tangani Form Submission (Sukses & Loading)
+        form.addEventListener('submit', function (e) {
+            // Tampilkan Loading instan
+            btn.disabled = true;
+            btnText.textContent = 'Memproses...';
             spinner.classList.remove('d-none');
 
-            // Optional: Tampilkan loading alert
+            // Tampilkan SweetAlert Sukses
             Swal.fire({
-                title: 'Mengupload...',
-                text: 'Mohon tunggu, file sedang diproses.',
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                showConfirmButton: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
+                icon: 'success',
+                title: 'Berhasil dikirim!',
+                text: 'Proses sedang berjalan. File ZIP akan otomatis terunduh sebentar lagi.',
+                timer: 4000,
+                timerProgressBar: true,
+                showConfirmButton: false
             });
-        });
 
-        // Fungsi untuk menampilkan konfirmasi sebelum upload (opsional)
-        function confirmUpload() {
-            const fileInput = document.getElementById('pdf_files');
-            const fileCount = fileInput.files.length;
-
-            if (fileCount > 0) {
-                Swal.fire({
-                    title: 'Konfirmasi Upload',
-                    text: `Anda akan mengupload ${fileCount} file PDF. Lanjutkan?`,
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#007bff',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Ya, Upload!',
-                    cancelButtonText: 'Batal'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        document.getElementById('uploadForm').submit();
-                    }
-                });
-            }
-        }
-
-        // Event listener untuk perubahan file input
-        document.getElementById('pdf_files').addEventListener('change', function () {
-            const fileCount = this.files.length;
-            if (fileCount > 0) {
-                // Tampilkan info jumlah file yang dipilih
-                const Toast = Swal.mixin({
-                    toast: true,
-                    position: 'top-end',
-                    showConfirmButton: false,
-                    timer: 3000,
-                    timerProgressBar: true,
-                    didOpen: (toast) => {
-                        toast.addEventListener('mouseenter', Swal.stopTimer)
-                        toast.addEventListener('mouseleave', Swal.resumeTimer)
-                    }
-                });
-
-                Toast.fire({
-                    icon: 'info',
-                    title: `${fileCount} file PDF dipilih`
-                });
-            }
+            // Form tetap dikirim secara alami untuk memicu download
+            // Tombol dikembalikan setelah jeda waktu tertentu
+            setTimeout(() => {
+                btn.disabled = false;
+                btnText.textContent = 'Mulai Proses';
+                spinner.classList.add('d-none');
+            }, 6000);
         });
     </script>
+
 </body>
 
 </html>
