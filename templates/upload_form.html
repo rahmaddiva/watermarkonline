@@ -277,6 +277,23 @@
             #progress-sidebar { width: 100%; max-width: 520px; }
         }
 
+        /* ── CURSOR TRAIL ────────────────────────────── */
+        .trail-dot {
+            position: fixed;
+            width: 6px; height: 6px;
+            margin: -3px 0 0 -3px;
+            border-radius: 50%;
+            background: var(--stamp);
+            pointer-events: none;
+            z-index: 9998;
+            animation: trail-fade 0.5s ease-out forwards;
+        }
+
+        @keyframes trail-fade {
+            from { transform: scale(1); opacity: 0.5; }
+            to   { transform: scale(0); opacity: 0; }
+        }
+
         /* ── CLICK RIPPLE ────────────────────────────── */
         .click-ripple {
             position: fixed;
@@ -360,6 +377,16 @@
         const sidebar  = document.getElementById('progress-sidebar');
         const progList = document.getElementById('progress-list');
         const summary  = document.getElementById('sidebar-summary');
+
+        // Cursor trail
+        document.addEventListener('mousemove', e => {
+            const dot = document.createElement('span');
+            dot.className = 'trail-dot';
+            dot.style.left = e.clientX + 'px';
+            dot.style.top  = e.clientY + 'px';
+            document.body.appendChild(dot);
+            dot.addEventListener('animationend', () => dot.remove());
+        });
 
         // Click ripple
         document.addEventListener('click', e => {
