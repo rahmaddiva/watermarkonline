@@ -1,33 +1,302 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF Watermarker & TIFF Converter</title>
+    <title>Watermark Dokumen — DISPUSIP</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.10.5/sweetalert2.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            background-color: #f8f9fa;
+        :root {
+            --ink:   #1a1a2e;
+            --paper: #f5f0e8;
+            --stamp: #c0392b;
+            --rule:  #d4c9b0;
+            --muted: #7a7060;
+            --ok:    #2e7d32;
         }
 
-        .upload-container {
-            max-width: 600px;
-            margin: 80px auto;
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            background-color: var(--paper);
+            background-image:
+                repeating-linear-gradient(0deg,  transparent, transparent 27px, var(--rule) 27px, var(--rule) 28px),
+                repeating-linear-gradient(90deg, transparent, transparent 27px, var(--rule) 27px, var(--rule) 28px);
+            background-size: 28px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Poppins', system-ui, sans-serif;
+            color: var(--ink);
+        }
+
+        /* ── WRAPPER (form + sidebar) ─────────────────── */
+        .page-wrap {
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+            margin: 40px 16px;
+            width: 100%;
+            max-width: 960px;
+            justify-content: center;
+        }
+
+        /* ── CARD ─────────────────────────────────────── */
+        .doc-card {
+            width: 100%;
+            max-width: 520px;
+            flex-shrink: 0;
+            background: #fffdf7;
+            border: 1.5px solid var(--rule);
+            outline: 4px solid var(--rule);
+            outline-offset: 5px;
+            padding: 44px 40px 36px;
+            position: relative;
+        }
+
+        .doc-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 5px;
+            background: var(--stamp);
+        }
+
+        /* ── HEADER ───────────────────────────────────── */
+        .doc-eyebrow {
+            font-size: 0.68rem;
+            font-weight: 600;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--stamp);
+            margin-bottom: 6px;
+        }
+
+        .doc-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            line-height: 1.15;
+            color: var(--ink);
+            margin: 0 0 6px;
+        }
+
+        .doc-subtitle {
+            font-size: 0.82rem;
+            color: var(--muted);
+            margin: 0 0 28px;
+            border-bottom: 1px solid var(--rule);
+            padding-bottom: 18px;
+        }
+
+        /* ── DROP AREA ────────────────────────────────── */
+        .drop-area {
+            border: 1.5px dashed var(--rule);
+            background: var(--paper);
+            padding: 32px 16px;
+            text-align: center;
+            cursor: pointer;
+            position: relative;
+            transition: border-color 0.15s, background 0.15s;
+        }
+
+        .drop-area:hover,
+        .drop-area.dragover {
+            border-color: var(--stamp);
+            background: #fdf4f3;
+        }
+
+        .drop-area input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        .drop-primary {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--ink);
+            margin: 0 0 4px;
+        }
+
+        .drop-secondary {
+            font-size: 0.78rem;
+            color: var(--muted);
+            margin: 0;
+            font-family: ui-monospace, 'Courier New', monospace;
+        }
+
+        /* ── FILE LIST ────────────────────────────────── */
+        #file-list { margin-top: 8px; }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 8px;
+            border-left: 3px solid var(--rule);
+            font-size: 0.8rem;
+            color: var(--ink);
+            margin-bottom: 3px;
+        }
+
+        .file-item .file-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-family: ui-monospace, 'Courier New', monospace;
+        }
+
+        .file-item .file-size {
+            color: var(--muted);
+            font-size: 0.72rem;
+            flex-shrink: 0;
+            font-family: ui-monospace, 'Courier New', monospace;
+        }
+
+        /* ── BUTTON ───────────────────────────────────── */
+        .btn-stamp {
+            width: 100%;
+            padding: 13px;
+            background: var(--stamp);
+            color: #fff;
+            border: none;
+            border-radius: 0;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.88rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: background 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-stamp:hover:not(:disabled) { background: #a93226; }
+        .btn-stamp:disabled { opacity: 0.65; cursor: not-allowed; }
+
+        /* ── SIDEBAR PROGRESS ─────────────────────────── */
+        #progress-sidebar {
+            display: none;
+            width: 280px;
+            flex-shrink: 0;
+            background: #fffdf7;
+            border: 1.5px solid var(--rule);
+            outline: 4px solid var(--rule);
+            outline-offset: 5px;
+            padding: 28px 24px 24px;
+            position: relative;
+            align-self: flex-start;
+        }
+
+        #progress-sidebar::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 5px;
+            background: var(--ink);
+        }
+
+        .sidebar-title {
+            font-size: 0.68rem;
+            font-weight: 600;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin: 0 0 16px;
+            border-bottom: 1px solid var(--rule);
+            padding-bottom: 10px;
+        }
+
+        #progress-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        #progress-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            font-size: 0.78rem;
+            color: var(--muted);
+            padding: 6px 0;
+            border-bottom: 1px solid var(--rule);
+            font-family: ui-monospace, 'Courier New', monospace;
+            line-height: 1.4;
+            transition: color 0.2s;
+        }
+
+        #progress-list li:last-child { border-bottom: none; }
+
+        #progress-list li.done { color: var(--ok); }
+        #progress-list li.active { color: var(--ink); font-weight: 600; }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--rule);
+            flex-shrink: 0;
+            margin-top: 4px;
+            transition: background 0.2s;
+        }
+
+        li.done  .status-dot { background: var(--ok); }
+        li.active .status-dot { background: var(--stamp); animation: pulse 0.8s infinite alternate; }
+
+        @keyframes pulse {
+            from { opacity: 1; }
+            to   { opacity: 0.3; }
+        }
+
+        .sidebar-summary {
+            margin-top: 14px;
+            font-size: 0.75rem;
+            color: var(--muted);
+            text-align: center;
+            font-family: ui-monospace, 'Courier New', monospace;
+            display: none;
+        }
+
+        .sidebar-summary.show { display: block; color: var(--ok); font-weight: 600; }
+
+        /* ── RESPONSIVE ───────────────────────────────── */
+        @media (max-width: 767px) {
+            .page-wrap { flex-direction: column; align-items: center; }
+            #progress-sidebar { width: 100%; max-width: 520px; }
+        }
+
+        /* ── FOOTER ───────────────────────────────────── */
+        .doc-footer {
+            margin-top: 20px;
+            font-size: 0.7rem;
+            color: var(--muted);
+            text-align: center;
+            font-family: ui-monospace, 'Courier New', monospace;
+            letter-spacing: 0.04em;
         }
     </style>
 </head>
 
 <body>
 
-    <div class="container">
-        <div class="upload-container">
-            <h2 class="text-center mb-4">PDF Watermark Tool</h2>
+    <div class="page-wrap">
+        <!-- FORM CARD -->
+        <div class="doc-card">
+            <p class="doc-eyebrow">DISPUSIP — Alat Pengarsipan</p>
+            <h1 class="doc-title">Watermark<br>Dokumen PDF</h1>
+            <p class="doc-subtitle">Setiap halaman akan diberi cap watermark, lalu dikonversi ke TIFF 300 DPI. Hasil dikemas dalam satu file ZIP.</p>
 
             {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -38,53 +307,122 @@
             {% endwith %}
 
             <form method="post" action="/upload" enctype="multipart/form-data" id="uploadForm">
-                <div class="mb-4">
-                    <label for="pdf_files" class="form-label fw-bold">Pilih file PDF (bisa banyak):</label>
-                    <input class="form-control" type="file" name="pdf_files" id="pdf_files" multiple required
-                        accept=".pdf,.jpg,.jpeg,.png">
-                    <div class="form-text">File akan diproses menjadi PDF Watermarked dan TIFF. Format didukung: PDF, JPG, PNG.</div>
+                <div class="mb-3">
+                    <div class="drop-area" id="dropArea">
+                        <input type="file" name="pdf_files" id="pdf_files" multiple required accept=".pdf,.jpg,.jpeg,.png">
+                        <p class="drop-primary">Pilih atau jatuhkan file di sini</p>
+                        <p class="drop-secondary">PDF · JPG · PNG — bisa lebih dari satu file</p>
+                    </div>
+                    <div id="file-list"></div>
                 </div>
 
-                <div class="d-grid">
-                    <button type="submit" class="btn btn-primary btn-lg" id="uploadBtn">
-                        <span class="btn-text">Mulai Proses</span>
-                        <span class="spinner-border spinner-border-sm d-none" role="status"></span>
-                    </button>
-                </div>
+                <button type="submit" class="btn-stamp" id="uploadBtn">
+                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                    <span class="btn-text">Proses &amp; Unduh ZIP</span>
+                </button>
             </form>
+
+            <p class="doc-footer">Dinas Perpustakaan dan Kearsipan</p>
+        </div>
+
+        <!-- SIDEBAR PROGRESS -->
+        <div id="progress-sidebar">
+            <p class="sidebar-title">Status Proses</p>
+            <ul id="progress-list"></ul>
+            <p class="sidebar-summary" id="sidebar-summary">ZIP siap diunduh</p>
         </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.10.5/sweetalert2.all.min.js"></script>
-
     <script>
-        const form = document.getElementById('uploadForm');
-        const btn = document.getElementById('uploadBtn');
-        const btnText = btn.querySelector('.btn-text');
-        const spinner = btn.querySelector('.spinner-border');
+        const form     = document.getElementById('uploadForm');
+        const btn      = document.getElementById('uploadBtn');
+        const btnText  = btn.querySelector('.btn-text');
+        const spinner  = btn.querySelector('.spinner-border');
+        const dropArea = document.getElementById('dropArea');
+        const sidebar  = document.getElementById('progress-sidebar');
+        const progList = document.getElementById('progress-list');
+        const summary  = document.getElementById('sidebar-summary');
 
-        // 1. Tangani Notifikasi dari Flash (Error/Warning)
+        // File list preview
+        function renderFileList(files) {
+            const list = document.getElementById('file-list');
+            if (!files.length) { list.innerHTML = ''; return; }
+            list.innerHTML = Array.from(files).map(f => {
+                const kb = (f.size / 1024).toFixed(1);
+                return `<div class="file-item">
+                    <span class="file-name">${f.name}</span>
+                    <span class="file-size">${kb} KB</span>
+                </div>`;
+            }).join('');
+        }
+
+        document.getElementById('pdf_files').addEventListener('change', function () {
+            renderFileList(this.files);
+        });
+
+        // Drag visual
+        dropArea.addEventListener('dragover',  e => { e.preventDefault(); dropArea.classList.add('dragover'); });
+        dropArea.addEventListener('dragleave', ()  => dropArea.classList.remove('dragover'));
+        dropArea.addEventListener('drop',      ()  => dropArea.classList.remove('dragover'));
+
+        // Flash messages
         document.addEventListener('DOMContentLoaded', function () {
             const flashEl = document.getElementById('flash-data');
             if (flashEl) {
-                const category = flashEl.getAttribute('data-category');
-                const message = flashEl.getAttribute('data-message');
                 Swal.fire({
-                    icon: category === 'danger' ? 'error' : category,
-                    title: category.toUpperCase(),
-                    text: message
+                    icon:  flashEl.dataset.category === 'danger' ? 'error' : flashEl.dataset.category,
+                    title: flashEl.dataset.category.toUpperCase(),
+                    text:  flashEl.dataset.message
                 });
             }
         });
 
-        // 2. Tangani Form Submission (Sukses & Loading)
-        form.addEventListener('submit', function (e) {
-            // Tampilkan Loading instan
+        // Sidebar progress simulation
+        function runProgressSidebar(files) {
+            const TOTAL_MS = 5500; // approximate server processing window
+            const steps    = Array.from(files);
+            const interval = Math.floor(TOTAL_MS / (steps.length + 1));
+
+            // Build list items
+            progList.innerHTML = steps.map((f, i) =>
+                `<li id="pli-${i}"><span class="status-dot"></span><span>${f.name}</span></li>`
+            ).join('');
+
+            sidebar.style.display = 'block';
+            summary.classList.remove('show');
+
+            // Tick each file
+            steps.forEach((_, i) => {
+                // mark active
+                setTimeout(() => {
+                    const el = document.getElementById(`pli-${i}`);
+                    if (el) el.className = 'active';
+                }, interval * i);
+
+                // mark done
+                setTimeout(() => {
+                    const el = document.getElementById(`pli-${i}`);
+                    if (el) el.className = 'done';
+                }, interval * (i + 1));
+            });
+
+            // final "done" message
+            setTimeout(() => {
+                summary.classList.add('show');
+            }, interval * steps.length + 200);
+        }
+
+        // Form submit
+        form.addEventListener('submit', function () {
+            const files = document.getElementById('pdf_files').files;
+
             btn.disabled = true;
             btnText.textContent = 'Memproses...';
             spinner.classList.remove('d-none');
 
-            // Tampilkan SweetAlert Sukses
+            if (files.length) runProgressSidebar(files);
+
             Swal.fire({
                 icon: 'success',
                 title: 'Berhasil dikirim!',
@@ -94,11 +432,9 @@
                 showConfirmButton: false
             });
 
-            // Form tetap dikirim secara alami untuk memicu download
-            // Tombol dikembalikan setelah jeda waktu tertentu
             setTimeout(() => {
                 btn.disabled = false;
-                btnText.textContent = 'Mulai Proses';
+                btnText.textContent = 'Proses & Unduh ZIP';
                 spinner.classList.add('d-none');
             }, 6000);
         });
