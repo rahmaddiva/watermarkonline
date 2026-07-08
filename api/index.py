@@ -10,6 +10,7 @@ from PIL import Image
 # Setup path agar bisa import dari folder yang sama di Vercel
 sys.path.append(os.path.dirname(__file__))
 from watermark_pdf import watermark_image_to_pdf
+from watermark_image import watermark_image_file
 
 app = Flask(__name__, 
             template_folder='../templates', 
@@ -19,7 +20,7 @@ app.secret_key = 'super_secret_key_fixed'
 # WAJIB: Gunakan /tmp untuk Vercel (read-only environment)
 UPLOAD_FOLDER = '/tmp'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['ALLOWED_EXTENSIONS'] = {'pdf'}
+app.config['ALLOWED_EXTENSIONS'] = {'pdf', 'jpg', 'jpeg', 'png'}
 
 # Path ke watermark di folder static (Root -> static -> temp_watermark.png)
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -49,6 +50,16 @@ def process_single_pdf(pdf_path, output_pdf_path):
     doc.close()
     return tiff_folder
 
+IMAGE_EXTENSIONS = {'jpg', 'jpeg', 'png'}
+
+def process_single_image(input_path, base_name, session_folder):
+    """Watermark gambar dan simpan sebagai TIFF di dalam session_folder."""
+    tiff_folder = os.path.join(UPLOAD_FOLDER, f"{base_name}_tiffs")
+    os.makedirs(tiff_folder, exist_ok=True)
+    tiff_path = os.path.join(tiff_folder, "page_1.tiff")
+    watermark_image_file(input_path, WM_PATH, tiff_path)
+    return tiff_folder
+
 @app.route('/')
 def index():
     return render_template('upload_form.html')
@@ -61,7 +72,7 @@ def upload_files():
 
     pdf_files = request.files.getlist('pdf_files')
     if not pdf_files or pdf_files[0].filename == '':
-        flash('Pilih minimal satu file PDF.', 'danger')
+        flash('Pilih minimal satu file (PDF, JPG, atau PNG).', 'danger')
         return redirect(url_for('index'))
 
     # Bersihkan & siapkan folder sementara untuk hasil sesi ini
@@ -71,24 +82,24 @@ def upload_files():
     os.makedirs(session_folder, exist_ok=True)
 
     processed_any = False
-    for pdf in pdf_files:
-        if pdf and allowed_file(pdf.filename):
-            filename = secure_filename(pdf.filename)
+    for file in pdf_files:
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            ext = filename.rsplit('.', 1)[1].lower()
+            base_name = os.path.splitext(filename)[0]
             input_path = os.path.join(UPLOAD_FOLDER, filename)
-            pdf.save(input_path)
-
-            out_pdf_name = filename.replace('.pdf', '_watermarked.pdf')
-            out_pdf_path = os.path.join(session_folder, out_pdf_name)
+            file.save(input_path)
 
             try:
-                # Jalankan alur pemrosesan
-                tiff_dir = process_single_pdf(input_path, out_pdf_path)
-                
-                # Pindahkan folder TIFF ke dalam folder hasil utama
+                if ext in IMAGE_EXTENSIONS:
+                    tiff_dir = process_single_image(input_path, base_name, session_folder)
+                else:
+                    out_pdf_name = base_name + '_watermarked.pdf'
+                    out_pdf_path = os.path.join(session_folder, out_pdf_name)
+                    tiff_dir = process_single_pdf(input_path, out_pdf_path)
+
                 shutil.move(tiff_dir, os.path.join(session_folder, os.path.basename(tiff_dir)))
-                
-                # Hapus file input asli untuk hemat ruang
-                os.remove(input_path) 
+                os.remove(input_path)
                 processed_any = True
             except Exception as e:
                 print(f"Error processing {filename}: {e}")
