@@ -277,6 +277,23 @@
             #progress-sidebar { width: 100%; max-width: 520px; }
         }
 
+        /* ── CLICK RIPPLE ────────────────────────────── */
+        .click-ripple {
+            position: fixed;
+            width: 20px; height: 20px;
+            margin: -10px 0 0 -10px;
+            border-radius: 50%;
+            border: 2px solid var(--stamp);
+            pointer-events: none;
+            z-index: 9999;
+            animation: click-ripple 0.45s ease-out forwards;
+        }
+
+        @keyframes click-ripple {
+            from { transform: scale(0); opacity: 1; }
+            to   { transform: scale(3); opacity: 0; }
+        }
+
         /* ── FOOTER ───────────────────────────────────── */
         .doc-footer {
             margin-top: 20px;
@@ -343,6 +360,16 @@
         const sidebar  = document.getElementById('progress-sidebar');
         const progList = document.getElementById('progress-list');
         const summary  = document.getElementById('sidebar-summary');
+
+        // Click ripple
+        document.addEventListener('click', e => {
+            const el = document.createElement('span');
+            el.className = 'click-ripple';
+            el.style.left = e.clientX + 'px';
+            el.style.top  = e.clientY + 'px';
+            document.body.appendChild(el);
+            el.addEventListener('animationend', () => el.remove());
+        });
 
         // File list preview
         function renderFileList(files) {
