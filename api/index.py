@@ -75,6 +75,16 @@ def upload_files():
         flash('Pilih minimal satu file (PDF, JPG, atau PNG).', 'danger')
         return redirect(url_for('index'))
 
+    # ponytail: Vercel hard limit 4.5MB — reject early with readable error
+    total_size = 0
+    for f in pdf_files:
+        f.seek(0, 2)  # seek to end
+        total_size += f.tell()
+        f.seek(0)     # reset for later use
+    if total_size > 4 * 1024 * 1024:
+        flash(f'Total ukuran file ({total_size / 1024 / 1024:.1f} MB) melebihi batas 4 MB.', 'danger')
+        return redirect(url_for('index'))
+
     # Bersihkan & siapkan folder sementara untuk hasil sesi ini
     session_folder = os.path.join(UPLOAD_FOLDER, "results")
     if os.path.exists(session_folder):

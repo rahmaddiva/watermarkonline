@@ -414,8 +414,20 @@
         }
 
         // Form submit
-        form.addEventListener('submit', function () {
+        form.addEventListener('submit', function (e) {
             const files = document.getElementById('pdf_files').files;
+
+            // ponytail: Vercel serverless hard limit is 4.5MB, warn early
+            const totalBytes = Array.from(files).reduce((sum, f) => sum + f.size, 0);
+            if (totalBytes > 4 * 1024 * 1024) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'File terlalu besar',
+                    text: `Total ukuran file ${(totalBytes / 1024 / 1024).toFixed(1)} MB melebihi batas 4 MB. Kurangi jumlah atau ukuran file.`,
+                });
+                return;
+            }
 
             btn.disabled = true;
             btnText.textContent = 'Memproses...';
