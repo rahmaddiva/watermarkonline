@@ -413,6 +413,12 @@
             }, interval * steps.length + 200);
         }
 
+        function showSidebarError(msg) {
+            progList.innerHTML = `<li style="color:var(--stamp);border-left:3px solid var(--stamp);padding:6px 8px;font-size:0.78rem;font-family:ui-monospace,'Courier New',monospace;">${msg}</li>`;
+            summary.classList.remove('show');
+            sidebar.style.display = 'block';
+        }
+
         // Form submit
         form.addEventListener('submit', function (e) {
             const files = document.getElementById('pdf_files').files;
@@ -421,6 +427,7 @@
             const totalBytes = Array.from(files).reduce((sum, f) => sum + f.size, 0);
             if (totalBytes > 4 * 1024 * 1024) {
                 e.preventDefault();
+                showSidebarError(`Ukuran total ${(totalBytes / 1024 / 1024).toFixed(1)} MB melebihi batas 4 MB`);
                 Swal.fire({
                     icon: 'error',
                     title: 'File terlalu besar',
