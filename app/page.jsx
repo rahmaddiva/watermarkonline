@@ -14,7 +14,8 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn, formatBytes } from "@/lib/utils";
-
+import { CatMascot } from "@/components/mascot";
+import { ThemeToggle } from "@/components/theme-toggle";
 const ACCEPT = ".pdf,.jpg,.jpeg,.png";
 const MAX_TOTAL = 4 * 1024 * 1024;
 
@@ -75,7 +76,12 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
-      <div className="flex w-full max-w-4xl flex-col items-start justify-center gap-5 md:flex-row">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
+      <div className="flex w-full max-w-4xl flex-col items-center">
+        <CatMascot className="mb-2" />
+        <div className="flex w-full flex-col items-start justify-center gap-5 md:flex-row">
         <Card className="w-full max-w-xl flex-1 border-[1.5px] outline outline-4 outline-offset-[5px] outline-[hsl(var(--border))] before:block before:h-[5px] before:bg-primary">
           <CardHeader>
             <p className="text-[0.68rem] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
@@ -202,6 +208,7 @@ export default function Home() {
             </p>
           </CardFooter>
         </Card>
+      </div>
       </div>
     </main>
   );

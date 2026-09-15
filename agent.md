@@ -35,6 +35,7 @@ watermarkfile/
 - Watermark image is fixed at `static/temp_watermark.png`, bundled via `outputFileTracingIncludes`. Centered on each page at 40% of page width.
 - Accepted: `.pdf`, `.jpg`, `.jpeg`, `.png`. Total upload cap 4 MB (Vercel serverless 4.5 MB limit) — rejected early, client + server.
 - Fully stateless: no `/tmp` writes, no DB, no session, no auth. Files flow as Buffers → ZIP generated in memory.
+- Measured on production (Hobby, fluid compute): 20-page PDF ≈ 17.6s end-to-end, well under the 60s maxDuration default. Ceiling ≈ 50 pages/request before timeout risk — batch large documents client-side if that is ever exceeded.
 
 ## Routes
 

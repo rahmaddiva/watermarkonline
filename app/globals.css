@@ -2,30 +2,66 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: 43 52% 94%;
-  --foreground: 231 40% 14%;
-  --card: 48 100% 98%;
-  --card-foreground: 231 40% 14%;
-  --primary: 5 62% 44%;
-  --primary-foreground: 0 0% 100%;
-  --muted: 43 18% 92%;
-  --muted-foreground: 35 12% 45%;
-  --border: 40 26% 76%;
-  --radius: 0px;
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --input: 240 5.9% 90%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --border: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --card-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --border: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+  }
 }
 
 body {
   background-color: hsl(var(--background));
-  background-image:
-    repeating-linear-gradient(0deg, transparent, transparent 27px, hsl(var(--border)) 27px, hsl(var(--border)) 28px),
-    repeating-linear-gradient(90deg, transparent, transparent 27px, hsl(var(--border)) 27px, hsl(var(--border)) 28px);
-  background-size: 28px 28px;
   color: hsl(var(--foreground));
 }
 
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-new(root) {
+  animation: theme-reveal 0.45s ease-in;
+}
+
+@keyframes theme-reveal {
+  from {
+    clip-path: circle(0px at var(--reveal-x, calc(100% - 2rem)) var(--reveal-y, 2rem));
+  }
+  to {
+    clip-path: circle(var(--reveal-r, 150vmax) at var(--reveal-x, calc(100% - 2rem)) var(--reveal-y, 2rem));
+  }
+}
+
 *:focus-visible {
-  outline: 2px solid hsl(var(--primary));
+  outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
 }
 
