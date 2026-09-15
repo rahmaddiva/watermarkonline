@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 43 52% 94%;
+  --foreground: 231 40% 14%;
+  --card: 48 100% 98%;
+  --card-foreground: 231 40% 14%;
+  --primary: 5 62% 44%;
+  --primary-foreground: 0 0% 100%;
+  --muted: 43 18% 92%;
+  --muted-foreground: 35 12% 45%;
+  --border: 40 26% 76%;
+  --radius: 0px;
+}
+
+body {
+  background-color: hsl(var(--background));
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 27px, hsl(var(--border)) 27px, hsl(var(--border)) 28px),
+    repeating-linear-gradient(90deg, transparent, transparent 27px, hsl(var(--border)) 27px, hsl(var(--border)) 28px);
+  background-size: 28px 28px;
+  color: hsl(var(--foreground));
+}
+
+*:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,71 +1,59 @@
 # Project: watermarkonline
 
-Flask web app deployed on Vercel. Users upload one or more PDF files, each gets a centered image watermark stamped on every page, then every page is converted to TIFF at 300 DPI. All results are zipped and returned as a single download.
+Next.js App Router (full JavaScript). Users upload PDF/JPG/PNG files, each gets a centered PNG watermark stamped on every page, then every page is converted to TIFF at 300 DPI. Watermarked PDFs + TIFF folders are zipped in-memory and returned as a single download.
 
 ## Stack
 
-- Python / Flask
-- PyMuPDF (fitz) - PDF manipulation and page-to-image rendering
-- Pillow - TIFF export
-- Werkzeug - file handling
-- Bootstrap 5 + SweetAlert2 - frontend UI
-- Vercel - serverless hosting
+- Next.js App Router (frontend + backend in one repo, Vercel zero-config)
+- pdf-lib — stamp watermark onto PDF pages
+- mupdf (official MuPDF WASM build) — render PDF pages at 300 DPI
+- sharp — composite watermark onto JPG/PNG, encode TIFF (LZW)
+- JSZip — in-memory ZIP
+- Tailwind CSS + shadcn-style components (`components/ui/`) + sonner toasts + lucide icons
 
 ## Project Structure
 
 ```
 watermarkfile/
-├── api/
-│   ├── index.py          # Flask app, routes, processing logic
-│   └── watermark_pdf.py  # Watermark stamping function
+├── app/
+│   ├── page.jsx            # Upload form UI
+│   ├── layout.jsx          # Root layout + Toaster
+│   ├── globals.css         # Tailwind + DISPUSIP theme tokens
+│   └── api/upload/route.js # POST /api/upload → hasil_watermark.zip
+├── components/ui/          # button, card, progress (shadcn-style)
+├── lib/
+│   ├── process.js          # watermark + 300 DPI + TIFF logic
+│   └── utils.js            # cn(), formatBytes()
 ├── static/
 │   └── temp_watermark.png  # Watermark image (fixed, not user-uploaded)
-├── templates/
-│   └── upload_form.html  # Single-page UI
-├── requirements.txt
-└── vercel.json           # All routes rewritten to /api/index.py
+└── next.config.mjs         # serverExternalPackages: mupdf, sharp
 ```
 
 ## Key Constraints
 
-- Vercel serverless: filesystem is read-only except `/tmp`. All intermediate files (uploads, watermarked PDFs, TIFF folders, ZIP) must be written to `/tmp`.
-- Watermark image is fixed at `static/temp_watermark.png`. It is centered on each page at 40% of page width.
-- Only `.pdf` files are accepted.
-- No database, no session persistence, no authentication.
+- Node.js runtime required on `/api/upload` (`export const runtime = "nodejs"`) — mupdf WASM + sharp do not run on edge.
+- Watermark image is fixed at `static/temp_watermark.png`, bundled via `outputFileTracingIncludes`. Centered on each page at 40% of page width.
+- Accepted: `.pdf`, `.jpg`, `.jpeg`, `.png`. Total upload cap 4 MB (Vercel serverless 4.5 MB limit) — rejected early, client + server.
+- Fully stateless: no `/tmp` writes, no DB, no session, no auth. Files flow as Buffers → ZIP generated in memory.
 
 ## Routes
 
-| Method | Path      | Description                                      |
-|--------|-----------|--------------------------------------------------|
-| GET    | `/`       | Renders upload form                              |
-| POST   | `/upload` | Accepts PDF files, processes, returns ZIP file   |
+| Method | Path         | Description                                     |
+|--------|--------------|-------------------------------------------------|
+| GET    | `/`          | Upload form                                     |
+| POST   | `/api/upload`| Accepts files (field `pdf_files`), returns ZIP  |
 
-## Processing Flow (`/upload`)
+## Processing Flow (`POST /api/upload`)
 
-1. Save uploaded PDFs to `/tmp`.
-2. For each PDF, call `watermark_image_to_pdf()` to produce a watermarked PDF.
-3. Render every page of the watermarked PDF to TIFF at 300 DPI using PyMuPDF + Pillow.
-4. Collect all watermarked PDFs and TIFF folders into `/tmp/results/`.
-5. ZIP the results folder and stream it back as `hasil_watermark.zip`.
+1. Read multipart files from memory (`arrayBuffer()`).
+2. Per PDF: pdf-lib stamps watermark on every page → mupdf renders each page @300 DPI → sharp encodes TIFF (LZW).
+3. Per image: sharp composites watermark centered at 40% width → TIFF (LZW).
+4. ZIP contains `<base>_watermarked.pdf` (PDF inputs only) + `<base>_tiffs/page_N.tiff`, streamed back as `hasil_watermark.zip`.
 
 ## Development
 
-Install dependencies:
-
 ```bash
-pip install -r requirements.txt
+npm install
+npm run dev     # http://localhost:3000
+npm run build
 ```
-
-Run locally:
-
-```bash
-flask --app api/index.py run
-```
-
-The app expects the watermark image at `static/temp_watermark.png` relative to the project root. Replace this file to change the watermark.
-
-## Notes
-
-- `app.secret_key` is hardcoded. Replace with an environment variable before any sensitive deployment.
-- `/tmp/results/` is wiped at the start of each `/upload` request to avoid stale data from previous invocations.
-- TIFF folders are named `<original_filename>_tiffs/` and placed alongside the watermarked PDF inside the ZIP.
