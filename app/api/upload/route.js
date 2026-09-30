@@ -3,6 +3,8 @@ import {
   ALLOWED_EXTS,
   IMAGE_EXTS,
   MAX_TOTAL_BYTES,
+  MAX_WM_BYTES,
+  isPngBuffer,
   safeBaseName,
   watermarkImageToTiff,
   watermarkPdfToTiffs,
@@ -28,7 +30,18 @@ export async function POST(request) {
   }
 
   // ponytail: Vercel hard limit 4.5MB — reject early with readable error
-  let total = 0;
+  const wmFile = form.get("watermark_file");
+  let wmOverride = null;
+  if (wmFile && typeof wmFile.arrayBuffer === "function" && wmFile.size > 0) {
+    if (wmFile.size > MAX_WM_BYTES) {
+      return Response.json({ error: "Logo watermark maksimal 1 MB (PNG)." }, { status: 413 });
+    }
+    wmOverride = Buffer.from(await wmFile.arrayBuffer());
+    if (!isPngBuffer(wmOverride)) {
+      return Response.json({ error: "Logo watermark harus file PNG." }, { status: 400 });
+    }
+  }
+  let total = wmOverride ? wmOverride.length : 0;
   const jobs = [];
   for (const file of files) {
     const ext = (file.name.split(".").pop() || "").toLowerCase();
@@ -52,10 +65,10 @@ export async function POST(request) {
     for (const { name, ext, bytes } of jobs) {
       const base = safeBaseName(name);
       if (IMAGE_EXTS.has(ext)) {
-        const tiff = await watermarkImageToTiff(bytes);
+        const tiff = await watermarkImageToTiff(bytes, wmOverride);
         zip.file(`${base}_tiffs/page_1.tiff`, tiff);
       } else {
-        const { stamped, pages } = await watermarkPdfToTiffs(bytes);
+        const { stamped, pages } = await watermarkPdfToTiffs(bytes, wmOverride);
         zip.file(`${base}_watermarked.pdf`, stamped);
         pages.forEach((tiff, i) => zip.file(`${base}_tiffs/page_${i + 1}.tiff`, tiff));
       }

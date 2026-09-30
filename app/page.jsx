@@ -23,18 +23,31 @@ const STEPS = ["Mengunggah", "Memberi cap watermark", "Mengonversi TIFF 300 DPI"
 
 export default function Home() {
   const inputRef = useRef(null);
+  const logoRef = useRef(null);
   const [files, setFiles] = useState([]);
+  const [logo, setLogo] = useState(null);
+  const [logoUrl, setLogoUrl] = useState(null);
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
   const [step, setStep] = useState(0);
 
+  const pickLogo = (file) => {
+    if (!file) return;
+    if (file.type !== "image/png") return toast.error("Logo watermark harus file PNG.");
+    if (file.size > 1024 * 1024) return toast.error("Logo watermark maksimal 1 MB.");
+    setLogo(file);
+    setLogoUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+  };
   const addFiles = (list) => {
     const picked = [...list].filter((f) => /\.(pdf|jpe?g|png)$/i.test(f.name));
     if (picked.length < list.length) toast.warning("Hanya PDF, JPG, PNG yang diterima.");
     setFiles((prev) => [...prev, ...picked]);
   };
 
-  const total = files.reduce((n, f) => n + f.size, 0);
+  const total = files.reduce((n, f) => n + f.size, 0) + (logo ? logo.size : 0);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -52,6 +65,7 @@ export default function Home() {
     try {
       const form = new FormData();
       files.forEach((f) => form.append("pdf_files", f));
+      if (logo) form.append("watermark_file", logo);
       const res = await fetch("/api/upload", { method: "POST", body: form });
       if (!res.ok) {
         const { error } = await res.json().catch(() => ({}));
@@ -66,6 +80,11 @@ export default function Home() {
       URL.revokeObjectURL(url);
       toast.success("ZIP siap diunduh.");
       setFiles([]);
+      setLogo(null);
+      setLogoUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -138,6 +157,64 @@ export default function Home() {
                 </p>
               </label>
 
+              <div className="border border-[hsl(var(--border))] p-3">
+                <p className="text-sm font-semibold">Logo watermark custom (opsional)</p>
+                <p className="font-mono text-xs text-muted-foreground">
+                  PNG, maks 1 MB — kosong = logo bawaan
+                </p>
+                <div className="mt-2 flex items-center gap-3">
+                  {logoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={logoUrl} alt="Preview logo" className="size-12 object-contain" />
+                  ) : (
+                    <div className="flex size-12 items-center justify-center border border-dashed border-[hsl(var(--border))] text-muted-foreground">
+                      <Stamp className="size-5" aria-hidden="true" />
+                    </div>
+                  )}
+                  <div className="flex flex-1 items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => logoRef.current?.click()}
+                    >
+                      {logo ? "Ganti logo" : "Pilih logo"}
+                    </Button>
+                    {logo && (
+                      <button
+                        type="button"
+                        aria-label="Hapus logo custom"
+                        onClick={() => {
+                          setLogo(null);
+                          setLogoUrl((prev) => {
+                            if (prev) URL.revokeObjectURL(prev);
+                            return null;
+                          });
+                          if (logoRef.current) logoRef.current.value = "";
+                        }}
+                        className="text-muted-foreground hover:text-primary"
+                      >
+                        <X className="size-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {logo && (
+                  <p className="mt-1 truncate font-mono text-xs text-muted-foreground">
+                    {logo.name} · {formatBytes(logo.size)}
+                  </p>
+                )}
+                <input
+                  ref={logoRef}
+                  type="file"
+                  accept=".png"
+                  className="sr-only"
+                  onChange={(e) => {
+                    pickLogo(e.target.files?.[0]);
+                    e.target.value = "";
+                  }}
+                />
+              </div>
               {files.length > 0 && (
                 <ul className="space-y-1">
                   {files.map((f, i) => (
